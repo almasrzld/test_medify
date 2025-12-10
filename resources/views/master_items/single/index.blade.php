@@ -18,6 +18,29 @@
                             <td>{{$data->nama}}</td>
                         </tr>
                         <tr>
+    <th>Kategori</th>
+    <td>:</td>
+    <td>
+        @if($data->categories->count() > 0)
+            {{ $data->categories->pluck('nama')->implode(', ') }}
+        @else
+            Tidak ada kategori
+        @endif
+    </td>
+</tr>
+
+                        <tr>
+                            <th>Foto</th>
+                            <td>:</td>
+                            <td>
+                                @if($data->foto)
+                                    <img src="{{ asset('uploads/' . $data->foto) }}" alt="Foto Item" style="max-width: 200px; max-height: 200px;">
+                                @else
+                                    No Photo
+                                @endif
+                            </td>
+                        </tr>
+                        <tr>
                             <th>Harga Beli</th>
                             <td>:</td>
                             <td>{{$data->harga_beli}}</td>

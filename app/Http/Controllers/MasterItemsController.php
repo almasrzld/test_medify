@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\MasterItem;
+use App\Models\Category;
 use Illuminate\Http\Request;
 
 class MasterItemsController extends Controller
@@ -23,9 +24,15 @@ class MasterItemsController extends Controller
 
         if (!empty($kode)) $data_search = $data_search->where('kode', $kode);
         if (!empty($nama)) $data_search = $data_search->where('nama', 'LIKE', '%' . $nama . '%');
-        if (!empty($hargamin)) $data_search = $data_search->where('harga_beli', '>=', $hargamin)->where('harga_beli', '<=', $hargamax);
+        if ($request->filled('hargamin')) {
+            $data_search = $data_search->where('harga_beli', '>=', $hargamin);
+        }
 
-        $data_search = $data_search->select('kode', 'nama', 'jenis', 'harga_beli', 'laba', 'supplier')->orderBy('id')->get();
+        if ($request->filled('hargamax')) {
+            $data_search = $data_search->where('harga_beli', '<=', $hargamax);
+        }
+
+        $data_search = $data_search->select('kode', 'nama', 'foto', 'jenis', 'harga_beli', 'laba', 'supplier')->orderBy('id')->get();
 
 
         return json_encode([
@@ -41,8 +48,10 @@ class MasterItemsController extends Controller
         } else {
             $item = MasterItem::find($id);
         }
-        $data['item'] = $item;
+
+       $data['item'] = $item;
         $data['method'] = $method;
+        $data['categories'] = Category::all();
         return view('master_items.form.index', $data);
     }
 
@@ -65,6 +74,14 @@ class MasterItemsController extends Controller
             $kode = $data_item->kode;
         }
 
+                if ($request->hasFile('foto')) {
+            $file = $request->file('foto');
+            $filename = time().'_'.$file->getClientOriginalName();
+            $file->move(public_path('uploads'), $filename);
+            $data_item->foto = $filename;
+        }
+
+
         $data_item->nama = $request->nama;
         $data_item->harga_beli = $request->harga_beli;
         $data_item->laba = $request->laba;
@@ -72,6 +89,8 @@ class MasterItemsController extends Controller
         $data_item->supplier = $request->supplier;
         $data_item->jenis = $request->jenis;
         $data_item->save();
+
+        $data_item->categories()->sync($request->categories ?? []);
 
         return redirect('master-items');
     }
@@ -112,4 +131,54 @@ class MasterItemsController extends Controller
         $random = rand(0,4);
         return $array[$random];
     }
+
+    public function exportExcel()
+{
+    $items = \App\Models\MasterItem::with('categories')->get();
+
+    $filename = "master_items_" . date('Ymd_His') . ".xls";
+
+    header("Content-Type: application/vnd.ms-excel");
+    header("Content-Disposition: attachment; filename=\"$filename\"");
+
+    echo "<table border='1'>";
+    echo "
+        <tr>
+            <th>No</th>
+            <th>Nama Kategori</th>
+            <th>Nama Item</th>
+            <th>Nama Supplier</th>
+            <th>Harga</th>
+            <th>Laba (%)</th>
+            <th>Harga Jual</th>
+        </tr>
+    ";
+
+    $no = 1;
+
+    foreach ($items as $item) {
+
+        $kategoriList = $item->categories->pluck('nama')->implode(', ');
+
+        $hargaJual = $item->harga + ($item->harga * $item->laba / 100);
+
+        echo "
+            <tr>
+                <td>{$no}</td>
+                <td>{$kategoriList}</td>
+                <td>{$item->nama}</td>
+                <td>{$item->supplier}</td>
+                <td>{$item->harga}</td>
+                <td>{$item->laba}</td>
+                <td>{$hargaJual}</td>
+            </tr>
+        ";
+
+        $no++;
+    }
+
+    echo "</table>";
+    exit;
+}
+
 }

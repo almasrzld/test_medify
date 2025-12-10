@@ -5,11 +5,6 @@
         <tr>
             <th>Kode</th>
             <th>Nama</th>
-            <th>Foto</th>
-            <th>Jenis</th>
-            <th>Harga Beli</th>
-            <th>Harga Jual</th>
-            <th>Supplier</th>
             <th>View</th>
         </tr>
     </thead>
